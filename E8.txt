@@ -1,0 +1,55 @@
+# E8 normalized
+
+# To run this file in Maple, first load the file "MapleCode".
+# (the file RunAll will load+run all files including thise one).
+
+G := (z*(1+y))/(1-exp(-z*(1+y)))-y*z;
+
+X8:= ( subs(z=E[8],G)*subs(z=U[8]-E[8],G)*subs(z=V[8]-E[8],G)*(3*H+6*L-2*E[1]-E[2]-E[3]-E[4]-E[5]-E[6]-2*E[7]-E[8])  )/
+     ( subs(z=3*H+6*L-2*E[1]-E[2]-E[3]-E[4]-E[5]-E[6]-2*E[7]-E[8],G)*subs(z=U[8],G)*subs(z=V[8],G)  );
+X7:= ( subs(z=E[7],G)*subs(z=U[7]-E[7],G)*subs(z=V[7]-E[7],G)*subs(z=W[7]-E[7],G)  )/
+     ( subs(z=U[7],G)*subs(z=V[7],G)*subs(z=W[7],G)  );
+X6:= ( subs(z=E[6],G)*subs(z=U[6]-E[6],G)*subs(z=V[6]-E[6],G)  )/
+     ( subs(z=U[6],G)*subs(z=V[6],G)  );
+X5:= ( subs(z=E[5],G)*subs(z=U[5]-E[5],G)*subs(z=V[5]-E[5],G)  )/
+     ( subs(z=U[5],G)*subs(z=V[5],G)  );
+X4:= ( subs(z=E[4],G)*subs(z=U[4]-E[4],G)*subs(z=V[4]-E[4],G)  )/
+     ( subs(z=U[4],G)*subs(z=V[4],G)  );
+X3:= ( subs(z=E[3],G)*subs(z=U[3]-E[3],G)*subs(z=V[3]-E[3],G)  )/
+     ( subs(z=U[3],G)*subs(z=V[3],G)  );
+X2 := (  subs(z=E[2],G)*subs(z=U[2]-E[2],G)*subs(z=V[2]-E[2],G)  )/
+     ( subs(z=U[2],G)*subs(z=V[2],G) );
+X1 := (  subs(z=E[1],G)*subs(z=U[1]-E[1],G)*subs(z=V[1]-E[1],G)*subs(z=W[1]-E[1],G)*subs(z=H,G)  )/
+     (  subs(z=W[1],G)  );
+
+C := X8*X7*X6*X5*X4*X3*X2*X1:
+
+C8 := BlowUp(E[8], {U[8],V[8]}, C):
+C8 := subs(U[8]=E[4]-E[6]-E[7],V[8]=E[7],C8):
+
+C7 := BlowUp(E[7], {U[7],V[7],W[7]}, C8):
+C7 := subs(U[7]=E[2]-E[3]-E[5],V[7]=E[4]-E[6],W[7]=E[6],C7):
+
+C6 := BlowUp(E[6], {U[6],V[6]}, C7):
+C6 := subs(U[6]=E[4],V[6]=E[5],C6):
+
+C5 := BlowUp(E[5], {U[5],V[5]}, C6):
+C5 := subs(U[5]=E[2]-E[3],V[5]=E[3]-E[4],C5):
+
+C4 := BlowUp(E[4], {U[4],V[4]}, C5):
+C4 := subs(U[4]=H+3*L-E[1]-E[2],V[4]=E[3],C4):
+
+C3 := BlowUp(E[3], {U[3],V[3]}, C4):
+C3 := subs(U[3]=H+2*L-E[1],V[3]=E[2],C3):
+
+C2 := BlowUp(E[2], {U[2],V[2]}, C3):
+C2 := subs(U[2]=H+3*L-E[1],V[2]=E[1],C2):
+
+C1 := BlowUp(E[1],{U[1],V[1],W[1]},C2):
+C1 := subs(U[1] = H + 2*L, V[1] = H + 3*L, W[1] = S, C1):
+
+Q[E8] := PiStar(C1, [H, H + 2*L, H + 3*L]):
+
+# Q[E8] evaluated at y=-1 should yield 12*(L+6*L*S-5*S^2)/(1+S)/(1+6*L-5*S)
+# factor(limit(Q[E8], y=-1)); # Checks out.
+

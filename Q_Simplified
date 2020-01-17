@@ -1,0 +1,24 @@
+# Each file E6.txt, E7.txt, ... computes (after first loading the file MapleCode) an expression for Q.
+
+# After that we simplified/shortened the expressions for Q to the following,
+# where l = exp( (y+1)*L ) and s = exp( (y+1)* S ).
+
+
+Qs[SU2] := 1 - 2*y + (y+1)/(y+s) * (  y + s*l*((y+1)*(s  *y  -l^4)-y*(s-1)*l^2                )/ (l^6+s^2*y)) :
+Qs[SU3] := 1 - 3*y + (y+1)/(y+s) * (2*y + s*l*((y+1)*(s^2*y  -l^4)-y*(s-1)*l*(l^2+s)          )/ (l^6+s^3*y)) :
+Qs[SU4] := 1 - 4*y + (y+1)/(y+s) * (3*y + s*l*((y+1)*(s^5*y^2-l^8)-y*(s-1)*l*(s+l)*(l^5+s^3*y))/((l^6+s^4*y)*(l^4+s^2*y)) ) :
+Qs[F4]  := 1 - 5*y + (y+1)/(y+s) * (4*y + s*l*((y+1)*(s^3*y  -l^4)-y*(s-1)*l^2*2*s            )/ (l^6+s^4*y)) :
+
+Qs[SU5] := 1 - 6*y + (y+1)/(y+s) * (5*y + (y*(s-1)*(l^7 +s^5*y) + s*l*(y+1)*(s^4*y^2-l^5-s*l*y*(l-1)*(l^2+s*l+s^2)))/((l+y)*(l^6+s^5*y))) :
+Qs[E6]  := 1 - 8*y + (y+1)/(y+s) * (7*y + (y*(s-1)*(l^9 +s^7*y) + s*l*(y+1)*(s^3*y  -l^4)*(l^3+s^3*y))/(        (l^3+s^2*y)*(l^6+s^5*y))) :
+Qs[E7]  := 1 - 9*y + (y+1)/(y+s) * (8*y + (y*(s-1)*(l^10+s^8*y) + s*l*(y+1)*(s^7*y^2-l^8))            /(        (l^4+s^3*y)*(l^6+s^5*y))) :
+Qs[E8]  := 1 -11*y + (y+1)/(y+s) * (10*y+ (y*(s-1)*(l^6 +s^5  ) + s*l*(y+1)*(s^4*y  -l^4))            /(                     l^6+s^5*y )) :
+
+Qs[SO3] := 1 - 2*y + (y+1) * ((1+l)*y-l^3)/(l^4+y) :
+Qs[SO5] := 1 - 3*y + (y+1) * ((2-l)*y-l  )/(l^2+y) + 2*y*l*(y+1)^2/(l^2+y)^2 :
+Qs[SO6] := 1 - 5*y + (y+1) * ((4+l)*y-l  )/(l^2+y) :
+
+Qs[USp4] := Qs[SU3] :
+
+# The Maple file RunAll verifies that these shortened expressions are equal to the original ones.
+

@@ -1,0 +1,40 @@
+# To run this file in Maple, first load the file "MapleCode".
+# (the file RunAll will load+run all files including thise one).
+
+
+# SU(2) un-normalized #############################################################
+
+F := ((1+y*exp(-z))*z)/(1-exp(-z));
+
+C := (  subs(z=E[1],F)*subs(z=U[1]-E[1],F)*subs(z=V[1]-E[1],F)*subs(z=W[1]-E[1],F)*subs(z=H,F)*(3*H+6*L-2*E[1])  )/
+     (  limit(F,z=0)*subs(z=3*H+6*L-2*E[1],F)*subs(z=W[1],F)  );
+
+	# Note: C is a product of various substitutions in F.  Most of these substitutions are harmless,
+	# except subs(z=0, F) which produces 0/0. That's why we have to replace that factor by limit(F, z=0).
+
+C1 := BlowUp(E[1], {U[1],V[1],W[1]}, C):
+C1 := subs( U[1] = H + 2*L, V[1] = H + 3*L, W[1] = S, C1):
+Q[SU2_not_normalized] := PiStar(C1, [H, H + 2*L, H + 3*L]):
+
+# Simplifies to:
+# (1-2*y)*(1+y) + (1+y)^2*y/(exp(S)+y) - (1+y)^2*exp(L+S)*(y*exp(2*L)*(exp(S)-1)+(1+y)*(exp(4*L)-exp(S)*y))/(exp(L)^6+exp(S)^2*y)/(exp(S)+y);
+
+
+
+
+
+# SU(2) normalized ################################################################
+
+G := (z*(1+y))/(1-exp(-z*(1+y)))-y*z;
+
+C := (  subs(z=E[1],G)*subs(z=U[1]-E[1],G)*subs(z=V[1]-E[1],G)*subs(z=W[1]-E[1],G)*subs(z=H,G)*(3*H+6*L-2*E[1])  )/
+     (  limit(G,z=0)*subs(z=3*H+6*L-2*E[1],G)*subs(z=W[1],G)  );
+
+
+C1 := BlowUp(E[1], {U[1],V[1],W[1]}, C):
+C1 := subs( U[1] = H + 2*L, V[1] = H + 3*L, W[1] = S, C1):
+Q[SU2] := PiStar( C1, [H, H + 2*L, H + 3*L]):
+
+# Simplifies to:
+# 1-2*y+(1+y)*y/(exp(S*(1+y))+y)+(1+y)*exp((L+S)*(1+y))*(y^2*exp(S*(1+y))+(1-exp(2*L*(1+y)))*(exp(2*L*(1+y))+exp(S*(1+y)))*y-exp(4*L*(1+y)))/(exp(6*L*(1+y))+exp(2*S*(1+y))*y)/(exp(S*(1+y))+y) ;
+

@@ -1,0 +1,234 @@
+# The following BlowUp code implements Lemma 3.5 from the paper.
+# If g(E) is some function, and if VAR = {U1, U2, ..., Ud} is a set
+# of variables, then the BlowUp of g(E) is:
+#
+#	C1 g(U1) + ... + Cd g(Ud)	[BlowUp Formula]
+#
+# where C.i is as in the proof of Lemma 3.5.
+#
+# If Z is the i'th element of the set VAR = {U1, U2, ..., Ud} then we can
+# compute C.i and g(U.i) with the following Maple expressions:
+#
+#	C.i = mul( j/(j-Z), j = VAR minus {Z})
+#
+# and
+#
+#	g(U.i) = limit(g, E=Z)
+#
+# This means that the above [BlowUp Formula] can be implemented like this:
+#
+BlowUp := proc(E::name, VAR::set, g) local Z,j;
+	add( mul( j/(j-Z), j = VAR minus {Z}) * limit(g, E=Z), Z = VAR)
+end:
+
+
+# It turned out that when you BlowUp repeatedly (see for example the file "E8.txt") then
+# the above program produces very large expressions. As you can see in the BlowUp formula,
+# the output of BlowUp is a sum. The limit command in the next call to BlowUp brings, as
+# a first step before actually computing the limit, everything under one denominator:
+#
+#	a/b + c/d + ... = LargeNumerator / LargeDenominator.
+#
+# For some cases, e.g. E8, this produced expressions that took so much memory that it
+# prevented us from finishing the computation.
+#
+# So we made a new version of the BlowUp program that implements the same [BlowUp Formula],
+# but avoids bringing things under one denominator whenever possible
+#
+#  (in a few rare cases we do have to bring expressions under one denominator, if
+#   a/b and c/d diverge while a/b + c/d converges, in those cases we allow a/b + c/d
+#   to be brought under one denominator in the limit-computing process.  But in all
+#   other cases we avoid bringing a/b + c/d + ... under one denominator).
+
+
+
+############ The following does the same computation but doesn't bring a/b + c/d + ...
+############ under the same denominator to prevent expression swell
+
+BlowUp := proc(E::name, VAR::set, g) local Z,j;
+	add(MultTerm(mul( j/(j-Z), j = VAR minus {Z}) , MyLimit2(g, E, Z)), Z = VAR)
+end:
+
+
+_Env_My_Ord := 2;
+MyLimit := proc(f, g, h)
+	local A,i,v;
+	A := eval([numer(f),denom(f)], g=g+h);
+	A := map(series, A, g=0, _Env_My_Ord);
+	for i from 0 to _Env_My_Ord-1 do
+		v := map(factor,map(coeff,A,g,i));
+		if v <> [0,0] then
+			if v[2]=0 then error "Diverges" fi;
+			return factor( v[1]/v[2] )
+		fi;
+	od;
+	lprint("Increasing order for series");
+	_Env_My_Ord := _Env_My_Ord + 1;
+	procname(args)
+end:
+
+MyLimit2 := proc(f, g, h) local A,i;
+	if type(f,`+`) then
+		A := traperror(add(MyLimit(i, g, h), i=f));
+		if A<>lasterror then return A fi;
+		lprint("Trapped error");
+	fi;
+	MyLimit(f, g, h)
+end:
+
+MultTerm := proc(a,b) local i;
+	if type(b,`+`) then
+		add(a*i, i=b)
+	else
+		a*b
+	fi
+end:
+
+
+
+############ This part is from:  https://www.math.fsu.edu/~hoeij/files/Hirzebruch  from
+############ the paper "On Hirzebruch invariants of elliptic fibrations".
+############ It is slightly modified to prevent bringing a/b + c/d + ... under one denominator
+
+# Evaluate C at H = point.  Use L'Hopital if necessary.
+EVAL_AT := proc( C,  point )
+	global H;
+	local F,G;
+	F := normal(C);
+	F := [numer(F), denom(F)];
+	G := expand( eval(F, H = point) );
+	while testeq(G[2]) do
+		if G[1] <> 0 then
+			error "non-zero divided by zero"
+		fi;
+		F := [diff(F[1],H), diff(F[2],H)];
+		G := expand( eval(F, H = point) )
+	od;
+	factor(G[1]/G[2])
+end:
+
+# The input an is a list where each entry is of the form [co, i, point]
+# The program evaluates the i'th derivative of F at the point H = point,
+# multiplies that by co, and adds this up for all members of the list an.
+Apply_AN := proc(an, F)
+	local i;
+	add(`if`(i[1]=0, 0, i[1]*EVAL_AT(DIFF(F,i[2]),i[3])), i=an )
+end:
+
+# i'th derivative of F w.r.t. H
+DIFF := proc(F,i)
+	global H;
+	options remember;
+	if i=0 then
+		F
+	else
+		normal( diff(procname(F,i-1), H) )
+	fi
+end:
+
+# The PiStar(C, P) program returns Apply_AN(an, C) for a suitable list an.
+#
+# See Apply_AN for notations. For each [co, i, point] in the list an, we can read
+# off the possible i's and points from the list P.  Initially, we'll use unknowns
+# for the co's. Next, we apply Apply_AN(an, H^i) for a number of i's, and compare
+# with what the result should have been.  This gives a set of equations, from which
+# the unknown co's can be computed.
+PiStar := proc(C, P)
+	global H;
+	local A, V, an, i,j, co, eq;
+	if type(C,`+`) then
+		A := add(PiStarE(i,P),i=C);
+		return A[1] + procname(normal(A[2]), P)
+	elif type(P,list) then
+		A := convert(P,`*`)
+	else
+		A := P
+	fi;
+	V := factors(A * H^(degree(A,H)-ldegree(A,H)) )[2];
+	an := [seq(seq([co[i,j], j, solve(V[i][1],H)], j=0..V[i][2]-1), i=1..nops(V))];
+	eq := {seq(Apply_AN(an, H^i) + residue(H^i/A, H=infinity), i=0..nops(an))};
+	an := subs(solve(eq, {seq(i[1],i=an)}), an);
+	Apply_AN(an,C)
+end:
+
+PiStarE := proc(C, P)
+	local a;
+	a := traperror(PiStar(C, P));
+	if a = lasterror then
+		[0, C]
+	else
+		[a, 0]
+	fi
+end:
+
+
+
+############ This part is from:  https://www.math.fsu.edu/~hoeij/files/Hirzebruch  from
+#            the paper "On Hirzebruch invariants of elliptic fibrations".
+#
+# In the not-normalized case one uses F := ((1+y*exp(-z))*z)/(1-exp(-z)) in which case the
+# program chi (below: renamed to chi_t_F) is the same as in www.math.fsu.edu/~hoeij/files/Hirzebruch
+#
+# In the normalized case one uses G := (z*(1+y))/(1-exp(-z*(1+y)))-y*z in which case the
+# program chi (below: renamed to chi_t_G) is slightly different because what goes inside
+# the ln( ) is G, with z replaced by t.  Moreover, the scaling factor t -> t*(1+y) at the
+# end disappears (in www.math.fsu.edu/~hoeij/files/Hirzebruch  this was needed in order to
+# be able to give a dimension-independent result, but the powers of 1+y turn into powers of 1
+# in the normalized case).
+
+
+
+# If the base has Chern classes c1, c2, c3,...
+# then the first argument C in the input should be:  1 - c1*t + c2*t^2 - c3*t^3 + ...
+#
+# The second argument is Q
+#
+# The third argument n specifies the t-adic precision;  the procedure computes chi(y,t)
+# modulo t^n,  so its output is usable for any base up to dimension n-1.
+#
+chi_t_F := proc(C, Qinp, n)
+	global y,t,L,S,U;    local P,H,Q;
+	P := -t*diff(C,t)/C;
+	H := HadamardProduct(P, ln(	t/(1-exp(-t))) + ln(1+y*exp(-t)	), t, n);
+	Q := subs(L = L*t, S = S*t, Qinp);
+	Series( eval(Q*exp(H), t=t*(1+y)), t,n)
+end:
+
+chi_t_G := proc(C, Qinp, n)
+	global y,t,L,S,U;    local P,H,Q;
+	P := -t*diff(C,t)/C;
+	H := HadamardProduct(P, ln(	t*(1+y)/(1-exp(-t*(1+y)))-y*t	), t, n);
+	Q := subs(L = L*t, S = S*t, Qinp);
+	Series( eval(Q*exp(H), t=t), t,n)
+end:
+
+
+# HadamardProduct( sum a_i * t^i, sum b_i * t^i ) is defined as: sum a_i * b_i * t^i
+HadamardProduct := proc(f, g, t, n)
+	local a,b,i;
+	a,b := Series(f,t,n), Series(g,t,n);
+	add( normal(coeff(a,t,i)*coeff(b,t,i))*t^i, i=0..n-1)
+end:
+
+# This computes f mod t^n,  and then simplifies the coefficients.
+Series := proc(f, t, n)
+	local fs;
+	fs := series(f, t=0, n);
+	if op(-1,fs) < n then
+		error "Precision is only:", op(-1,fs)
+	fi;
+	sort(collect(convert(fs,polynom),t,factor),t,ascending)
+end:
+
+############      Example      ############
+
+# The series is valid for any dimension d, if you increase acc, you
+# will get more terms of the same power series.
+
+# acc := 5;
+# C := 1 + add( c||i * (-t)^i, i=1..acc);
+#
+# SU2 normalized:
+# Q_SU2N := 1-2*y+(1+y)*y/(exp(S*(1+y))+y)+exp((L+S)*(1+y))*(1+y)*(y^2*exp(S*(1+y))+(1-exp(2*L*(1+y)))*(exp(2*L*(1+y))+exp(S*(1+y)))*y
+# -exp(4*L*(1+y)))/(exp(6*L*(1+y))+exp(2*S*(1+y))*y)/(exp(S*(1+y))+y) ;
+# ct := chi_t_G(C, Q_SU2N, acc);

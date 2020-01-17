@@ -1,0 +1,16 @@
+# SO(3) normalized
+
+# To run this file in Maple, first load the file "MapleCode".
+# (the file RunAll will load+run all files including thise one).
+
+G := (z*(1+y))/(1-exp(-z*(1+y)))-y*z;
+
+C := (  subs(z=E[1],G)*subs(z=U[1]-E[1],G)*subs(z=V[1]-E[1],G)*subs(z=H,G)*(3*H+6*L-E[1])  )/
+     (  subs(z=3*H+6*L-E[1],G)  );
+
+C1 := BlowUp(E[1], {U[1],V[1]}, C):
+C1 := subs( U[1] = H + 2*L, V[1] = H + 3*L, C1):
+Q[SO3] := PiStar( C1, [H, H + 2*L, H + 3*L]);
+
+# Q[SO3] evaluated at y=-1 should yield  12*L/(1+4*L)
+# limit(Q[SO3], y=-1); # Checks out

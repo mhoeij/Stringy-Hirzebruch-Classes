@@ -1,0 +1,106 @@
+cases := [E6, E7, E8, F4, SO3, SO5, SO6, SU2, SU3, SU4, SU5, USp4];
+
+###########  Step 1: Compute Q for each case. #################
+
+read "MapleCode":  # Code to compute Q
+
+read "E6.txt":
+read "E7.txt":
+read "E8.txt":
+read "F4.txt":
+read "SO3.txt":
+read "SO5.txt":
+read "SO6.txt":
+read "SU2.txt": 
+read "SU3.txt": 
+read "SU4.txt":
+read "SU5.txt":
+read "USp4.txt":
+
+
+
+###########  Step 2: Compare Q with simplified expressions   #################
+
+# We simplified/shortened the expressions Q computed in Step 1 above and wrote
+# them in terms of l = exp( (y+1)*L ) and s = exp( (y+1)* S )  in the following file:
+
+read Q_Simplified:
+
+# We inserted the shortened expressions from the file Q_Simplified in our paper.
+# Here we check that they match the original longer expressions computed in Step 1:
+
+for i in cases do if simplify(eval(Qs[i], {l = exp( (y+1)*L ), s = exp( (y+1)* S )}) - Q[i]) <> 0 then
+	error "Simplified Q expression is not equal to the original Q expression", i
+fi od:
+
+
+
+###########  Step 3: Compare the values at y = -1  #################
+
+# We also simplified the values at y = -1
+
+Q_1[E6]  := 9+(-126*L^2+180*L*S-63*S^2-69*L+54*S-9)/((1+3*L-2*S)*(1+6*L-5*S)*(1+S)) :
+Q_1[E7]  := 10+(-192*L^2+294*L*S-112*S^2-88*L+70*S-10)/((1+6*L-5*S)*(1+4*L-3*S)*(1+S)) :
+Q_1[E8]  := 12+(-60*L+48*S-12)/((1+6*L-5*S)*(1+S)) :
+Q_1[F4]  := 6+(-6-24*L+18*S)/((1+S)*(6*L+1-4*S)) :
+Q_1[SO3] := 3-3/(1+4*L) :
+Q_1[SO5] := 4-4*(L+1)/(2*L+1)^2 :
+Q_1[SO6] := 6-6/(2*L+1) :
+Q_1[SU2] := 3+(-6*L+3*S-3)/((1+S)*(6*L+1-2*S)) :
+Q_1[SU3] := 4+(-4-12*L+8*S)/((1+S)*(6*L+1-3*S)) :
+Q_1[SU4] := 5-(18*L-10*S+5)*(1+4*L-3*S)/((1+S)*(6*L+1-4*S)*(4*L+1-2*S)) :
+Q_1[SU5] := 7+(-30*L^2+18*L*S+5*S^2-37*L+28*S-7)/((L+1)*(1+S)*(1+6*L-5*S)) :
+Q_1[USp4]:= 4+(-4-12*L+8*S)/((1+S)*(6*L+1-3*S)) :
+
+# Check that they match too:
+for i in cases do if normal(Q_1[i] - limit(Q[i], y=-1)) <> 0 then
+        error "Q at y = -1 does not match the simplified expression"
+fi od:
+
+
+
+###########  Step 4: Compute terms of the series chi   #################
+#
+# The outputs have been put in the files chi_order_4, chi_order_6, and CalabiYau.
+
+# Try to write a polynomial in a more compact form:
+SimpPol := proc(P) global C,L;
+	if type(P,`^`) then procname(op(1,P))^op(2,P)
+	elif type(P,`*`) then map(procname,P)
+	else collect(P, indets(C,name) union {L}, distributed, factor)
+	fi
+end:
+
+want_to_produce_chi := true;
+replace_L_with_c1 := false;
+ORDER := 6;
+
+if want_to_produce_chi = true then
+	# The next line ensures that each coefficient takes just 1 line
+	# no matter how big that coefficient may be:
+	interface(screenwidth = infinity):
+	C := 1 + add( c||i * (-t)^i, i=1..ORDER + 1):
+	for i in cases do
+		chi[i] := chi_t_G(C, factor(Q[i]), ORDER + 1);
+		lprint("");
+		lprint("");
+		lprint(cat("chi for case ", convert(i,string), ":"));
+		for j from ldegree(chi[i],t) to ORDER do
+			cf := coeff(chi[i],t,j);
+			# This cf should be nearly-palindromic, lets test that
+			if expand(cf - (-y)^(j+1) * eval(cf, y=1/y)) <> 0 then
+				error "t^j coefficient is not palindromic up to a sign"
+			fi;
+			if replace_L_with_c1 then
+				cf := factor(eval(cf, L = c1))
+			fi;
+			cf2 := sort(SimpPol(cf));
+			if expand(cf-cf2)<>0 then error "wrong simplification" fi;
+			# If SimpPol made "cf" shorter then lets use the shorter expression:
+			if length(cf2) < length(cf) then cf := cf2 fi:
+			# Now print "cf" (the t^j coefficient) to the screen, along with t^j:
+			lprint(cat(`if`(j=ldegree(chi[i],t),"  ","+ "),"t^",j,"*(  ",cf,"  )" ))
+		od:
+		lprint(cat("+ O(t^",ORDER+1,")"))
+	od:
+fi:
